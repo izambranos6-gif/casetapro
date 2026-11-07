@@ -1,0 +1,15 @@
+PARCHE DE INICIO CASETAPRO - FLUTTER WEB
+
+1. Descomprime este ZIP EN LA RAÍZ del Codespace casetapro:
+   unzip -o CasetaPro_Parche_Inicio_Web.zip
+2. Detén la ejecución anterior con Ctrl+C.
+3. Ejecuta:
+   flutter clean
+   flutter pub get
+   flutter build web --release
+   python3 -m http.server 8080 --bind 0.0.0.0 --directory build/web
+4. Abre el puerto 8080 y prueba con una pestaña de incógnito.
+5. Si continúa en blanco, pulsa Ctrl+Shift+J y envía los mensajes rojos de Console.
+
+El parche solo cambia lib/main.dart y no toca tu sistema web AQUAPRO.
+No borra registros ni modifica la apariencia de las pantallas.
