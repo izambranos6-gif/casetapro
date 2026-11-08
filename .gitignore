@@ -17,3 +17,8 @@ build/
 # Archivos temporales
 *.zip
 error_casetapro.log
+
+# Firma privada de Android
+android/key.properties
+*.jks
+*.keystore
