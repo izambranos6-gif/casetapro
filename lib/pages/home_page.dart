@@ -8,7 +8,6 @@ import '../widgets/app_frame.dart';
 import 'daily_page.dart';
 import 'entry_page.dart';
 import 'generate_report_page.dart';
-import 'query_page.dart';
 
 /// Menú principal de CasetaPro. Mantiene la zona elegida en la primera pantalla.
 class HomePage extends StatelessWidget {
@@ -180,21 +179,15 @@ class HomePage extends StatelessWidget {
                 accent: AppColors.green,
                 onTap: () => _open(context, DailyPage(zone: zone)),
               ),
-              _MenuTile(
-                title: 'Generar reporte',
-                subtitle: 'Imagen o PDF',
-                icon: Icons.bar_chart_rounded,
-                accent: AppColors.orange,
-                onTap: () => _open(context, GenerateReportPage(zone: zone)),
-              ),
-              _MenuTile(
-                title: 'Consultas por fecha',
-                subtitle: 'Ver historial',
-                icon: Icons.calendar_month_rounded,
-                accent: AppColors.violet,
-                onTap: () => _open(context, QueryPage(zone: zone)),
-              ),
             ],
+          ),
+          const SizedBox(height: 10),
+          _WideMenuTile(
+            title: 'Generar reporte',
+            subtitle: 'Imagen o PDF',
+            icon: Icons.bar_chart_rounded,
+            accent: AppColors.orange,
+            onTap: () => _open(context, GenerateReportPage(zone: zone)),
           ),
         ],
       ),
@@ -284,6 +277,86 @@ class _MenuTile extends StatelessWidget {
                   fontSize: 10,
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Acceso horizontal compacto que ocupa todo el ancho inferior.
+class _WideMenuTile extends StatelessWidget {
+  const _WideMenuTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE0EAF2)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navy.withOpacity(0.045),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.11),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: accent, size: 23),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(title,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(subtitle,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_outward_rounded, color: accent, size: 19),
             ],
           ),
         ),
