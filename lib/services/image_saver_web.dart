@@ -1,12 +1,22 @@
-import 'dart:typed_data';
-import 'package:cross_file/cross_file.dart';
-import 'package:share_plus/share_plus.dart';
 
-/// En web se utiliza el mecanismo de descarga/compartir del navegador.
+import 'dart:typed_data';
+import 'package:web/web.dart' as web;
+import 'dart:js_interop';
+
+/// Descarga el PNG directamente desde Flutter Web.
 Future<void> save(Uint8List bytes) async {
-  await SharePlus.instance.share(ShareParams(
-    files: [XFile.fromData(bytes,
-      name: 'reporte_abastecimiento.png', mimeType: 'image/png')],
-    fileNameOverrides: ['reporte_abastecimiento.png'],
-  ));
+  final blob = web.Blob(
+    [bytes.toJS].toJS,
+    web.BlobPropertyBag(type: 'image/png'),
+  );
+
+  final url = web.URL.createObjectURL(blob);
+  final anchor = web.HTMLAnchorElement()
+    ..href = url
+    ..download = 'reporte_abastecimiento.png';
+
+  anchor.click();
+
+  // Se libera la URL temporal después de iniciar la descarga.
+  web.URL.revokeObjectURL(url);
 }

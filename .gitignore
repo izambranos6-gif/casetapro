@@ -13,3 +13,7 @@ build/
 
 # Archivos ZIP temporales
 *.zip
+
+# Archivos temporales
+*.zip
+error_casetapro.log
