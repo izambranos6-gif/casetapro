@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../core/dates.dart';
@@ -10,10 +9,7 @@ import '../widgets/app_frame.dart';
 import 'entry_page.dart';
 
 class DailyPage extends StatefulWidget {
-  const DailyPage({
-    super.key,
-    required this.zone,
-  });
+  const DailyPage({super.key, required this.zone});
 
   final int zone;
 
@@ -24,6 +20,94 @@ class DailyPage extends StatefulWidget {
 class _DailyPageState extends State<DailyPage> {
   DateTime _date = DateTime.now();
   String _search = '';
+
+  // Se leen los campos opcionales del JSON para conservar compatibilidad
+  // con registros antiguos que no tienen observacion o motivo.
+  String _observationOf(FeedRecord record) {
+    final json = record.toJson();
+    return (json['observation'] ?? '').toString().trim();
+  }
+
+  String _reasonOf(FeedRecord record) {
+    final json = record.toJson();
+    return (json['differenceReason'] ?? json['reason'] ?? '')
+        .toString()
+        .trim();
+  }
+
+  int _differenceOf(FeedRecord record) =>
+      record.caseta -
+      FeedRecord.suggestedCaseta(
+        record.previous,
+        record.requested,
+        record.supplied,
+      );
+
+  bool _hasObservation(FeedRecord record) =>
+      _observationOf(record).isNotEmpty || _reasonOf(record).isNotEmpty;
+
+  Future<void> _showObservation(FeedRecord record) async {
+    final observation = _observationOf(record);
+    final reason = _reasonOf(record);
+    final difference = _differenceOf(record);
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.comment_outlined, color: AppColors.green),
+            const SizedBox(width: 9),
+            Expanded(child: Text('Observación · ${record.pool}')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Fecha: ${niceDate(record.date)} · Zona ${record.zone}',
+                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              if (reason.isNotEmpty) ...[
+                const Text(
+                  'Motivo de la diferencia',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(reason),
+                const SizedBox(height: 13),
+              ],
+              if (observation.isNotEmpty) ...[
+                const Text(
+                  'Observación',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(observation),
+                const SizedBox(height: 13),
+              ],
+              if (difference != 0) ...[
+                const Divider(),
+                Text(
+                  'Diferencia: ${difference > 0 ? '+' : ''}$difference sacos',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _delete(FeedRecord record) async {
     final yes = await showDialog<bool>(
@@ -46,125 +130,74 @@ class _DailyPageState extends State<DailyPage> {
         ],
       ),
     );
-
     if (yes != true || !mounted) return;
 
     try {
       await AppScope.of(context).delete(record);
-
-      if (mounted) {
-        showAppMessage(context, 'Registro eliminado.');
-      }
+      if (mounted) showAppMessage(context, 'Registro eliminado.');
     } catch (e) {
-      if (mounted) {
-        showAppMessage(context, 'No se pudo eliminar: $e');
-      }
+      if (mounted) showAppMessage(context, 'No se pudo eliminar: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = AppScope.of(context);
-
-    final records = controller.forDay(
-      widget.zone,
-      _date,
-    );
-
-    final byPool = {
-      for (final record in records) record.pool: record,
-    };
-
+    final records = controller.forDay(widget.zone, _date);
+    final byPool = {for (final record in records) record.pool: record};
     final poolList = Pools.forZone(widget.zone)
-        .where(
-          (pool) => pool.toLowerCase().contains(
-            _search.toLowerCase(),
-          ),
-        )
+        .where((pool) => pool.toLowerCase().contains(_search.toLowerCase()))
         .toList();
-
     final totals = _Totals.of(records);
 
     return AppFrame(
       title: 'Registros del Día',
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          12,
-          14,
-          12,
-          80,
-        ),
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 80),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ZONA SELECCIONADA
             ZoneBanner(zone: widget.zone),
-
             const SizedBox(height: 12),
-
-            // FILTROS
             SectionCard(
               child: Column(
                 children: [
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _date = _date.subtract(
-                              const Duration(days: 1),
-                            );
-                          });
-                        },
+                        onPressed: () => setState(() {
+                          _date = _date.subtract(const Duration(days: 1));
+                        }),
                         icon: const Icon(Icons.chevron_left),
                       ),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () async {
-                            final date = await selectRecordDate(
-                              context,
-                              _date,
-                            );
-
-                            if (date != null) {
-                              setState(() => _date = date);
-                            }
+                            final date = await selectRecordDate(context, _date);
+                            if (date != null) setState(() => _date = date);
                           },
-                          icon: const Icon(
-                            Icons.calendar_month,
-                          ),
+                          icon: const Icon(Icons.calendar_month),
                           label: Text(niceDate(_date)),
                         ),
                       ),
                       IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _date = _date.add(
-                              const Duration(days: 1),
-                            );
-                          });
-                        },
+                        onPressed: () => setState(() {
+                          _date = _date.add(const Duration(days: 1));
+                        }),
                         icon: const Icon(Icons.chevron_right),
                       ),
                     ],
                   ),
-
-//-------------------------------------------------;;;
-const SizedBox(height: 12),
-
+                  const SizedBox(height: 12),
                   TextField(
-                    onChanged: (text) {
-                      setState(() => _search = text);
-                    },
+                    onChanged: (value) => setState(() => _search = value),
                     decoration: const InputDecoration(
                       prefixIcon: Icon(Icons.search),
                       hintText: 'Buscar piscina...',
                       isDense: true,
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 13,
@@ -199,23 +232,18 @@ const SizedBox(height: 12),
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
-
-            // TABLA MÁS ANCHA
             SectionCard(
               padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 5,
+                horizontal: 14,
+                vertical: 5,
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: constraints.maxWidth,
-                      ),
+                      constraints: BoxConstraints(minWidth: constraints.maxWidth),
                       child: DataTable(
                         columnSpacing: 18,
                         horizontalMargin: 10,
@@ -223,9 +251,7 @@ const SizedBox(height: 12),
                         dataRowMinHeight: 48,
                         dataRowMaxHeight: 52,
                         headingRowColor:
-                            WidgetStateProperty.all(
-                          AppColors.navy,
-                        ),
+                            WidgetStateProperty.all(AppColors.navy),
                         headingTextStyle: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
@@ -236,76 +262,37 @@ const SizedBox(height: 12),
                           color: Colors.black87,
                         ),
                         columns: const [
-                          DataColumn(
-                            label: Text('Piscina'),
-                          ),
-                          DataColumn(
-                            label: Text('Ant.'),
-                          ),
-                          DataColumn(
-                            label: Text('Pedido'),
-                          ),
-                          DataColumn(
-                            label: Text('Abast.'),
-                          ),
-                          DataColumn(
-                            label: Text('Caseta'),
-                          ),
-                          DataColumn(
-                            label: Text('Acción'),
-                          ),
+                          DataColumn(label: Text('Piscina')),
+                          DataColumn(label: Text('Ant.')),
+                          DataColumn(label: Text('Pedido')),
+                          DataColumn(label: Text('Abast.')),
+                          DataColumn(label: Text('Caseta')),
+                          DataColumn(label: Text('Acción')),
                         ],
                         rows: poolList.map((pool) {
                           final record = byPool[pool];
-
                           return DataRow(
                             cells: [
-                              DataCell(
-                                Text(
-                                  pool,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              DataCell(Text(
+                                pool,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
                                 ),
-                              ),
-                              DataCell(
-                                Text(
-                                  record == null
-                                      ? '—'
-                                      : '${record.previous}',
-                                ),
-                              ),
-                              DataCell(
-                                Text(
-                                  record == null
-                                      ? '—'
-                                      : '${record.requested}',
-                                ),
-                              ),
-                              DataCell(
-                                Text(
-                                  record == null
-                                      ? '—'
-                                      : '${record.supplied}',
-                                ),
-                              ),
-                              DataCell(
-                                Text(
-                                  record == null
-                                      ? '—'
-                                      : '${record.caseta}',
-                                ),
-                              ),
+                              )),
+                              DataCell(Text(record?.previous.toString() ?? '—')),
+                              DataCell(Text(record?.requested.toString() ?? '—')),
+                              DataCell(Text(record?.supplied.toString() ?? '—')),
+                              DataCell(Text(record?.caseta.toString() ?? '—')),
                               DataCell(
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    // 1. Editar (o agregar si aún no existe).
                                     IconButton(
                                       tooltip: record == null
                                           ? 'Registrar'
                                           : 'Editar',
-                                      visualDensity:
-                                          VisualDensity.compact,
+                                      visualDensity: VisualDensity.compact,
                                       icon: Icon(
                                         record == null
                                             ? Icons.add_circle_outline
@@ -313,31 +300,41 @@ const SizedBox(height: 12),
                                         color: Colors.blue,
                                         size: 20,
                                       ),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => EntryPage(
-                                              zone: widget.zone,
-                                              initialRecord: record,
-                                              initialPool: pool,
-                                            ),
+                                      onPressed: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => EntryPage(
+                                            zone: widget.zone,
+                                            initialRecord: record,
+                                            initialPool: pool,
                                           ),
-                                        );
-                                      },
+                                        ),
+                                      ),
                                     ),
+                                    // 2. Observación: solo si hay contenido.
+                                    if (record != null &&
+                                        _hasObservation(record))
+                                      IconButton(
+                                        tooltip: 'Ver observación',
+                                        visualDensity: VisualDensity.compact,
+                                        icon: const Icon(
+                                          Icons.comment_outlined,
+                                          color: AppColors.green,
+                                          size: 20,
+                                        ),
+                                        onPressed: () => _showObservation(record),
+                                      ),
+                                    // 3. Eliminar.
                                     if (record != null)
                                       IconButton(
                                         tooltip: 'Eliminar',
-                                        visualDensity:
-                                            VisualDensity.compact,
+                                        visualDensity: VisualDensity.compact,
                                         icon: const Icon(
                                           Icons.delete_outline,
                                           color: Colors.red,
                                           size: 20,
                                         ),
-                                        onPressed: () =>
-                                            _delete(record),
+                                        onPressed: () => _delete(record),
                                       ),
                                   ],
                                 ),
@@ -351,10 +348,7 @@ const SizedBox(height: 12),
                 },
               ),
             ),
-
             const SizedBox(height: 14),
-
-            // TOTALES
             SectionCard(
               child: Column(
                 children: [
@@ -371,83 +365,48 @@ const SizedBox(height: 12),
                     runSpacing: 12,
                     alignment: WrapAlignment.center,
                     children: [
-                      _total(
-                        'Día anterior',
-                        totals.previous,
-                      ),
-                      _total(
-                        'Pedidos',
-                        totals.requested,
-                      ),
-                      _total(
-                        'Abastecidos',
-                        totals.supplied,
-                      ),
-                      _total(
-                        'Caseta',
-                        totals.caseta,
-                      ),
+                      _total('Día anterior', totals.previous),
+                      _total('Pedidos', totals.requested),
+                      _total('Abastecidos', totals.supplied),
+                      _total('Caseta', totals.caseta),
                     ],
                   ),
                 ],
               ),
             ),
-
-            
-
-  Widget _total(String label, int value) {
-    return Column(
-      children: [
-        Text(
-          '$value',
-          style: const TextStyle(
-            fontSize: 21,
-            color: AppColors.navy,
-            fontWeight: FontWeight.w900,
-          ),
+          ],
         ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-          ),
-        ),
-      ],
+      ),
     );
   }
+
+  Widget _total(String label, int value) => Column(
+        children: [
+          Text(
+            '$value',
+            style: const TextStyle(
+              fontSize: 21,
+              color: AppColors.navy,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(label, style: const TextStyle(fontSize: 11)),
+        ],
+      );
 }
 
 class _Totals {
-  const _Totals(
-    this.previous,
-    this.requested,
-    this.supplied,
-    this.caseta,
-  );
+  const _Totals(this.previous, this.requested, this.supplied, this.caseta);
 
   final int previous;
   final int requested;
   final int supplied;
   final int caseta;
 
-  factory _Totals.of(List<FeedRecord> rows) {
-    return _Totals(
-      rows.fold<int>(
-        0,
-        (sum, item) => sum + item.previous,
-      ),
-      rows.fold<int>(
-        0,
-        (sum, item) => sum + item.requested,
-      ),
-      rows.fold<int>(
-        0,
-        (sum, item) => sum + item.supplied,
-      ),
-      rows.fold<int>(
-        0,
-        (sum, item) => sum + item.caseta,
-      ),
-    );
-  }
+  factory _Totals.of(List<FeedRecord> rows) => _Totals(
+        rows.fold<int>(0, (sum, item) => sum + item.previous),
+        rows.fold<int>(0, (sum, item) => sum + item.requested),
+        rows.fold<int>(0, (sum, item) => sum + item.supplied),
+        rows.fold<int>(0, (sum, item) => sum + item.caseta),
+      );
 }
