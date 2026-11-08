@@ -392,9 +392,9 @@ class _EntryPageState extends State<EntryPage> {
                 fontWeight: FontWeight.w800))),
           ]),
           const SizedBox(height: 9),
-          Text('Sacos calculados: ${calculated ?? '—'}',
+          Text('Sacos en caseta: ${calculated ?? '—'}',
             style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 7),
           Text(difference == null ? 'Ingresa los cuatro valores para comparar.'
               : difference == 0 ? 'Sin diferencias. El conteo coincide.'
               : 'Diferencia: ${difference > 0 ? '+' : ''}$difference sacos',
