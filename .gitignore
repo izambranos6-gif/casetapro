@@ -22,3 +22,5 @@ error_casetapro.log
 android/key.properties
 *.jks
 *.keystore
+
+/key.properties

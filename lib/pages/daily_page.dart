@@ -393,27 +393,7 @@ const SizedBox(height: 12),
               ),
             ),
 
-            const SizedBox(height: 14),
-
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EntryPage(
-                      zone: widget.zone,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Nuevo registro'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+            
 
   Widget _total(String label, int value) {
     return Column(
