@@ -66,11 +66,25 @@ class _DailyPageState extends State<DailyPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Fecha: ${niceDate(record.date)} · Zona ${record.zone}',
-                style: const TextStyle(color: AppColors.muted, fontSize: 12),
-              ),
-              const SizedBox(height: 16),
+              if (difference != 0) ...[
+                const Text(
+                  'Diferencia',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${difference > 0 ? '+' : ''}$difference sacos',
+                  style: TextStyle(
+                    color: difference > 0 ? AppColors.green : Colors.red,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (reason.isNotEmpty || observation.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, thickness: 1),
+                  const SizedBox(height: 14),
+                ],
+              ],
               if (reason.isNotEmpty) ...[
                 const Text(
                   'Motivo de la diferencia',
@@ -88,13 +102,6 @@ class _DailyPageState extends State<DailyPage> {
                 const SizedBox(height: 4),
                 Text(observation),
                 const SizedBox(height: 13),
-              ],
-              if (difference != 0) ...[
-                const Divider(),
-                Text(
-                  'Diferencia: ${difference > 0 ? '+' : ''}$difference sacos',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
               ],
             ],
           ),

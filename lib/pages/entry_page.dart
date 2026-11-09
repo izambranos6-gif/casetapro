@@ -230,8 +230,6 @@ class _EntryPageState extends State<EntryPage> {
                         fontWeight: FontWeight.w800,
                       )),
                     ),
-                    const SizedBox(height: 17),
-                    ZoneBanner(zone: widget.zone),
                     const SizedBox(height: 18),
                     const Text('Piscina', style: TextStyle(
                       fontWeight: FontWeight.w800,
